@@ -1,0 +1,81 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+-----
+title: "Comprehensive Football Match Analysis"
+output:
+  word_document: default
+  html_document: default
+---
+
+## Descriptive Analysis
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(tidyr)
+
+# Load the dataset
+final_dataset <- read_csv("C:/Users/Salman_Imtiaz1/Desktop/EPL.csv")
+
+# Basic overview
+total_matches <- nrow(final_dataset)
+total_goals_scored <- sum(final_dataset$FTHG) + sum(final_dataset$FTAG)
+average_home_goals <- mean(final_dataset$FTHG)
+average_away_goals <- mean(final_dataset$FTAG)
+match_outcome_distribution <- table(final_dataset$FTR) / total_matches * 100
+
+# Print overview
+cat("Total Matches:", total_matches, "\n")
+cat("Total Goals Scored:", total_goals_scored, "\n")
+cat("Average Home Goals:", average_home_goals, "\n")
+cat("Average Away Goals:", average_away_goals, "\n")
+print(match_outcome_distribution)
+
+# Correlation between Home/Away Goals Scored and Match Outcome
+final_dataset$FTR_binary <- ifelse(final_dataset$FTR == "H", 1, 0)
+correlation_fthg_ftr <- cor(final_dataset$FTHG, final_dataset$FTR_binary)
+correlation_ftag_ftr <- cor(final_dataset$FTAG, final_dataset$FTR_binary)
+
+# Plotting
+ggplot(final_dataset, aes(x = FTR, y = FTHG)) +
+  geom_boxplot() +
+  labs(title = "Home Goals Scored by Match Outcome", x = "Match Outcome", y = "Home Goals Scored")
+
+ggplot(final_dataset, aes(x = FTR, y = FTAG)) +
+  geom_boxplot() +
+  labs(title = "Away Goals Scored by Match Outcome", x = "Match Outcome", y = "Away Goals Scored")
+
+# Prepare the data
+features <- c("HTGS", "ATGS", "HTGC", "ATGC", "HTGD", "ATGD", "DiffPts", "DiffFormPts")
+target <- "FTR_binary"
+
+# Ensure there are no missing values in the dataset
+final_dataset <- final_dataset %>% drop_na()
+
+# Create training and testing sets
+set.seed(123)
+training_samples <- createDataPartition(final_dataset[[target]], p = 0.8, list = FALSE)
+train_data <- final_dataset[training_samples, ]
+test_data <- final_dataset[-training_samples, ]
+
+# Train the Random Forest model using the formula interface
+model <- randomForest(as.formula(paste(target, "~", paste(features, collapse = "+"))), data = train_data)
+
+# Predict on the test set
+predictions <- predict(model, test_data)
+
+# Calculate accuracy
+accuracy <- sum(predictions == test_data[[target]]) / nrow(test_data)
+print(paste("Accuracy:", accuracy))
+
+model <- randomForest(as.formula(paste(target, "~", paste(features, collapse = "+"))), data = train_data)
+
+final_dataset <- final_dataset %>% drop_na()
+
